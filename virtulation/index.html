@@ -1,151 +1,97 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
 <style>
 
-body {
-  font: 10px sans-serif;
-}
-
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.bar {
-  fill: steelblue;
-}
-
-.x.axis path {
+.axis .domain {
   display: none;
 }
 
 </style>
-<body>
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<svg width="960" height="500"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
 
-var margin = {top: 20, right: 20, bottom: 30, left: 40},
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+var svg = d3.select("svg"),
+    margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom,
+    g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-var x0 = d3.scale.ordinal()
-    .rangeRoundBands([0, width], .1);
+var x0 = d3.scaleBand()
+    .rangeRound([0, width])
+    .paddingInner(0.1);
 
-var x1 = d3.scale.ordinal();
+var x1 = d3.scaleBand()
+    .padding(0.05);
 
-var y = d3.scale.linear()
-    .range([height, 0]);
+var y = d3.scaleLinear()
+    .rangeRound([height, 0]);
 
-var color = d3.scale.ordinal()
+var z = d3.scaleOrdinal()
     .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
 
-var xAxis = d3.svg.axis()
-    .scale(x0)
-    .orient("bottom");
+d3.csv("data.csv", function(d, i, columns) {
+  for (var i = 1, n = columns.length; i < n; ++i) d[columns[i]] = +d[columns[i]];
+  return d;
+}, function(error, data) {
+  if (error) throw error;
 
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left")
-    .tickFormat(d3.format(".2s"));
-
-var svg = d3.select("body").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-d3.csv("data.csv", function(error, data) {
-  var ageNames = d3.keys(data[0]).filter(function(key) { return key !== "State"; });
-
-  data.forEach(function(d) {
-    d.ages = ageNames.map(function(name) { return {name: name, value: +d[name], row: d["State"]}; });
-  });
+  var keys = data.columns.slice(1);
 
   x0.domain(data.map(function(d) { return d.State; }));
-  x1.domain(ageNames).rangeRoundBands([0, x0.rangeBand()]);
-  y.domain([0, d3.max(data, function(d) { return d3.max(d.ages, function(d) { return d.value; }); })]);
+  x1.domain(keys).rangeRound([0, x0.bandwidth()]);
+  y.domain([0, d3.max(data, function(d) { return d3.max(keys, function(key) { return d[key]; }); })]).nice();
 
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
-      
-  svg.append("g")
-      .attr("class", "y axis")
-      .style('opacity','0')
-      .call(yAxis)
-    .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("Population");
-   
-   svg.select('.y').transition().duration(500).delay(1300).style('opacity','1');
-
-  var state = svg.selectAll(".state")
-      .data(data)
+  g.append("g")
+    .selectAll("g")
+    .data(data)
     .enter().append("g")
-      .attr("class", "g")
-      .attr("transform", function(d) { return "translate(" + x0(d.State) + ",0)"; });
-
-  state.selectAll("rect")
-      .data(function(d) { return d.ages; })
+      .attr("transform", function(d) { return "translate(" + x0(d.State) + ",0)"; })
+    .selectAll("rect")
+    .data(function(d) { return keys.map(function(key) { return {key: key, value: d[key]}; }); })
     .enter().append("rect")
-      .attr("width", x1.rangeBand())
-      .attr("x", function(d) { return x1(d.name); })
-      .attr("y", function(d) { return y(0); })
-      .attr("height", function(d) { return height - y(0); })
-      .style("fill", function(d) { return color(d.name); })
-      .on("mouseover", function(d) {
-          d3.select(this).style("fill", d3.rgb(color(d.name)).darker(2));
-          svg.append('text')
-          .attr('x', 500)
-          .attr('y', height-430)
-          .attr("id", "meantext")
-          .style('fill', '#000')
-          .style('font-size', '18px')
-          .text(d.row+' - '+d.name+' - '+d.value);
-      })
-      .on("mouseout", function(d) {
-          d3.select(this).style("fill", color(d.name));
-          d3.select("#meantext").remove();
-          svg.selectAll('text')
-      });
-
-    state.selectAll("rect")
-      .transition()
-      .delay(function (d) {return Math.random()*1000;})
-      .duration(1000)
+      .attr("x", function(d) { return x1(d.key); })
       .attr("y", function(d) { return y(d.value); })
-      .attr("height", function(d) { return height - y(d.value); });
- 
+      .attr("width", x1.bandwidth())
+      .attr("height", function(d) { return height - y(d.value); })
+      .attr("fill", function(d) { return z(d.key); });
 
-  var legend = svg.selectAll(".legend")
-      .data(ageNames.slice().reverse())
+  g.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x0));
+
+  g.append("g")
+      .attr("class", "axis")
+      .call(d3.axisLeft(y).ticks(null, "s"))
+    .append("text")
+      .attr("x", 2)
+      .attr("y", y(y.ticks().pop()) + 0.5)
+      .attr("dy", "0.32em")
+      .attr("fill", "#000")
+      .attr("font-weight", "bold")
+      .attr("text-anchor", "start")
+      .text("Population");
+
+  var legend = g.append("g")
+      .attr("font-family", "sans-serif")
+      .attr("font-size", 10)
+      .attr("text-anchor", "end")
+    .selectAll("g")
+    .data(keys.slice().reverse())
     .enter().append("g")
-      .attr("class", "legend")
-      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")";})
-      .style("opacity","0");
-
+      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
 
   legend.append("rect")
-      .attr("x", width - 18)
-      .attr("width", 18)
-      .attr("height", 18)
-      .style("fill", color);
+      .attr("x", width - 19)
+      .attr("width", 19)
+      .attr("height", 19)
+      .attr("fill", z);
 
   legend.append("text")
       .attr("x", width - 24)
-      .attr("y", 9)
-      .attr("dy", ".35em")
-      .style("text-anchor", "end")
+      .attr("y", 9.5)
+      .attr("dy", "0.32em")
       .text(function(d) { return d; });
-
-    legend.transition().duration(500).delay(function(d,i){ return 1300 + 100 * i; }).style("opacity","1");
-
 });
 
 </script>
