@@ -48,13 +48,28 @@ d3.csv("data.csv", function(d, i, columns) {
     .enter().append("g")
       .attr("transform", function(d) { return "translate(" + x0(d.State) + ",0)"; })
     .selectAll("rect")
-    .data(function(d) { return keys.map(function(key) { return {key: key, value: d[key]}; }); })
+    .data(function(d) { return keys.map(function(key) {
+    return {key: key, value: d[key], row:d["State"]}; }); })
     .enter().append("rect")
       .attr("x", function(d) { return x1(d.key); })
-      .attr("y", function(d) { return y(d.value); })
+      .attr("y", function(d) { return y(0); })
       .attr("width", x1.bandwidth())
-      .attr("height", function(d) { return height - y(d.value); })
-      .attr("fill", function(d) { return z(d.key); });
+      .attr("height", function(d) { return height - y(0); })
+      .attr("fill", function(d) { return z(d.key); })
+      .on("mouseover", function(d) {
+          d3.select(this).style("fill", d3.rgb(z(d.key)).darker(2));
+          svg.append('text')
+          .attr('x', 500)
+          .attr('y', height-430)
+          .attr("id", "meantext")
+          .style('fill', '#000')
+          .style('font-size', '18px')
+          .text(d.row+' - '+d.key+' - '+d.value);
+      })
+      .on("mouseout", function(d) {
+          d3.select(this).style("fill", z(d.key));
+          d3.select("#meantext").remove();
+      });
 
   g.selectAll("rect")
       .transition()
@@ -106,6 +121,7 @@ d3.csv("data.csv", function(d, i, columns) {
       .text(function(d) { return d; });
 
     legend.transition().duration(500).delay(function(d,i){ return 1300 + 100 * i; }).style("opacity","1");
+
 
 });
 
