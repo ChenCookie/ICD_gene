@@ -1,0 +1,6 @@
+ICD,OMIM gene count,Match in DOID,Match in Orphanet,Match distinct Gene.refGene
+150,10,7,10,1
+151,12,12,4,0
+155,9,0,10,1
+156,0,0,1,0
+159,3,0,3,1
