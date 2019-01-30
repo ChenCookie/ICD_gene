@@ -63,8 +63,9 @@ d3.csv("data.csv", function(d, i, columns) {
           .attr('y', height-430)
           .attr("id", "meantext")
           .style('fill', '#000')
+          .style('font-family','sans-serif')
           .style('font-size', '18px')
-          .text(d.row+' - '+d.key+' - '+d.value);
+          .text(d.row+' -> '+d.key+' -> '+d.value);
       })
       .on("mouseout", function(d) {
           d3.select(this).style("fill", z(d.key));
