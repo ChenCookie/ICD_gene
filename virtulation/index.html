@@ -81,7 +81,7 @@
                     .rangeRound([height, 0]);
                 var z = d3.scaleOrdinal()
                     .range(["#33658A", "#28AFB0", "#BFD8BD", "#FFD586"]);
-                d3.csv("data.csv", function(d, i, columns) {
+                d3.csv("datas.csv", function(d, i, columns) {
                     for (var i = 1, n = columns.length; i < n; ++i) d[columns[i]] = +d[columns[i]];
                     return d;
                 }, function(error, data) {
